@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=yes">
+  <title>AUTOPSY · 关系验尸报告</title>
+  <style>
+    :root {
+      --bg-deep: #0D0221;
+      --bg-ink: #0A1628;
+      --neon-pink: #FF6B9D;
+      --neon-blue: #00D4FF;
+      --neon-purple: #B24BF3;
+      --neon-red: #FF3860;
+      --text-primary: #f0e6ff;
+      --text-secondary: #c9b8e8;
+      --card-bg: rgba(20, 10, 40, 0.55);
+      --card-border: rgba(255, 107, 157, 0.25);
+      --glass-blur: blur(20px);
+      --font-xl: clamp(2.2rem, 6vw, 4rem);
+      --font-lg: clamp(1.5rem, 4vw, 2.3rem);
+      --font-md: clamp(1rem, 2.5vw, 1.3rem);
+      --font-sm: clamp(0.75rem, 1.8vw, 0.95rem);
+      --radius: 20px;
+      --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+      background: linear-gradient(165deg, #0D0221 0%, #0A1628 45%, #0f0a1e 100%);
+      background-attachment: fixed;
+      min-height: 100vh; min-height: 100dvh;
+      color: var(--text-primary); overflow-x: hidden;
+      -webkit-tap-highlight-color: transparent; position: relative;
+    }
+    body::before {
+      content:''; position:fixed; top:0; left:0; width:100%; height:100%;
+      background: radial-gradient(ellipse at 25% 20%, rgba(178,75,243,0.08) 0%, transparent 55%),
+                  radial-gradient(ellipse at 70% 30%, rgba(0,212,255,0.05) 0%, transparent 55%),
+                  radial-gradient(ellipse at 40% 75%, rgba(255,107,157,0.06) 0%, transparent 50%);
+      pointer-events:none; z-index:0;
+    }
+    .app-container { position:relative; z-index:2; max-width:500px; margin:0 auto; padding:18px 16px 40px; min-height:100vh; display:flex; flex-direction:column; align-items:center; }
+    .page { display:none; width:100%; flex-direction:column; align-items:center; animation: fadeSlideIn 0.4s ease; }
+    .page.active { display:flex; }
+    @keyframes fadeSlideIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    .neon-pink { text-shadow: 0 0 8px var(--neon-pink),0 0 22px var(--neon-pink),0 0 44px var(--neon-purple),0 0 70px rgba(255,107,157,0.6); font-weight:900; letter-spacing:0.04em; }
+    .neon-blue { text-shadow: 0 0 8px var(--neon-blue),0 0 22px var(--neon-blue),0 0 44px rgba(0,212,255,0.6); font-weight:900; }
+    .neon-purple { text-shadow: 0 0 8px var(--neon-purple),0 0 22px var(--neon-purple),0 0 44px rgba(178,75,243,0.6); font-weight:900; }
+    .glass-card { background: var(--card-bg); border:1px solid var(--card-border); border-radius:var(--radius); backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur); padding:20px 18px; width:100%; box-shadow:0 12px 32px rgba(0,0,0,0.4); transition:all var(--transition); }
+    .neon-btn { display:inline-flex; align-items:center; justify-content:center; padding:14px 34px; border-radius:50px; font-weight:700; font-size:var(--font-md); letter-spacing:0.06em; cursor:pointer; border:2px solid var(--neon-pink); background:rgba(255,107,157,0.08); color:var(--neon-pink); box-shadow:0 0 18px rgba(255,107,157,0.2); transition:all 0.25s; -webkit-tap-highlight-color:transparent; user-select:none; }
+    .neon-btn:active { background:rgba(255,107,157,0.25); box-shadow:0 0 35px rgba(255,107,157,0.5); transform:scale(0.97); color:#fff; }
+    .progress-wrap { width:100%; margin-bottom:14px; }
+    .progress-label { font-size:0.8rem; color:var(--neon-red); text-align:right; margin-bottom:4px; font-weight:600; text-shadow:0 0 6px rgba(255,56,96,0.6); }
+    .progress-outer { height:10px; border-radius:10px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,56,96,0.3); overflow:hidden; }
+    .progress-inner { height:100%; border-radius:10px; background:linear-gradient(90deg, #ff3860, #ff6b3d); box-shadow:0 0 14px rgba(255,56,96,0.55); transition:width 0.4s ease; }
+    .danmaku-layer { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:200; overflow:hidden; }
+    .danmaku-item { position:absolute; white-space:nowrap; font-weight:800; font-size:1rem; padding:8px 20px; border-radius:22px; background:rgba(5,2,18,0.9); border:1.5px solid rgba(255,107,157,0.8); color:#fff; text-shadow:0 0 8px var(--neon-pink),0 0 18px var(--neon-pink),0 0 30px rgba(255,107,157,0.7),0 0 2px #000; box-shadow:0 0 22px rgba(255,107,157,0.5),0 0 45px rgba(178,75,243,0.25),inset 0 0 8px rgba(255,107,157,0.1); animation:danmakuFly 4.5s ease-in-out forwards; letter-spacing:0.03em; pointer-events:none; z-index:201; }
+    @keyframes danmakuFly { 0%{ transform:translateX(105vw) translateY(0px); opacity:0; } 8%{ transform:translateX(88vw) translateY(-7px); opacity:1; } 25%{ transform:translateX(62vw) translateY(5px); opacity:1; } 50%{ transform:translateX(35vw) translateY(-4px); opacity:1; } 75%{ transform:translateX(12vw) translateY(6px); opacity:0.85; } 100%{ transform:translateX(-35vw) translateY(-2px); opacity:0; } }
+    .toast-modal { position:fixed; top:30%; left:50%; transform:translate(-50%,-50%); background:rgba(20,5,40,0.9); border:2px solid var(--neon-purple); border-radius:20px; padding:22px 28px; z-index:300; text-align:center; font-weight:700; box-shadow:0 0 45px rgba(178,75,243,0.6); animation:toastPop 0.4s ease; }
+    @keyframes toastPop { from{ opacity:0; transform:translate(-50%,-50%) scale(0.8); } to{ opacity:1; transform:translate(-50%,-50%) scale(1); } }
+    .persona-name { font-size:3.5rem; text-align:center; margin:10px 0; animation:glitchPulse 2s infinite; }
+    @keyframes glitchPulse { 0%,100%{ text-shadow:0 0 10px var(--neon-pink),0 0 30px var(--neon-pink); } 50%{ text-shadow:0 0 20px var(--neon-pink),0 0 50px var(--neon-purple); } }
+    .typewriter { border-left:2px solid var(--neon-pink); padding-left:10px; min-height:22px; animation:cursorBlink 0.7s step-end infinite; }
+    .typewriter.done { border-left-color:transparent; animation:none; }
+    @keyframes cursorBlink { 50%{ border-left-color:transparent; } }
+    .radar-canvas { width:100%; max-width:300px; display:block; margin:10px auto; }
+    .option-btn { display:flex; align-items:center; gap:10px; padding:12px; border-radius:14px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.04); color:#e0d5f0; text-align:left; cursor:pointer; transition:all 0.2s; -webkit-tap-highlight-color:transparent; font-size:0.9rem; line-height:1.4; }
+    .option-btn:active { background:rgba(255,107,157,0.15); border-color:rgba(255,107,157,0.5); }
+    .option-letter { background:rgba(255,107,157,0.2); border-radius:50%; width:26px; height:26px; display:inline-flex; align-items:center; justify-content:center; font-weight:700; flex-shrink:0; }
+    .dark-persona-card { background:rgba(178,75,243,0.08); border:1px solid rgba(178,75,243,0.35); border-radius:16px; padding:14px 16px; margin-top:6px; }
+    @keyframes spin { to{ transform:rotate(360deg); } }
+    @keyframes bounce { 0%,100%{ transform:translateY(0); opacity:0.5; } 50%{ transform:translateY(-12px); opacity:1; } }
+    @media (max-width:400px) { .glass-card{ padding:14px 12px; } .danmaku-item{ font-size:0.85rem; padding:6px 14px; } .persona-name{ font-size:2.8rem; } .option-btn{ font-size:0.8rem; padding:10px; } }
+  </style>
+</head>
+<body>
+<div class="app-container" id="appContainer">
+  <!-- ==================== 首页（关系尸检科·加急通道） ==================== -->
+  <div class="page active" id="pageHome">
+    <h1 class="neon-pink" style="font-size:var(--font-xl);text-align:center;">AUTOPSY</h1>
+    <p class="neon-pink" style="font-size:var(--font-lg);margin-top:4px;">关系验尸报告</p>
+    <div class="glass-card" style="margin:18px 0; text-align:center; background:rgba(255,107,157,0.06); border-color: rgba(255,107,157,0.5);">
+      <p style="font-size:0.7rem; color:var(--neon-red); letter-spacing:0.12em; margin-bottom:6px;">
+        ⚠️ 关系尸检科 · 加急通道
+      </p>
+      <p style="font-size:1.2rem; font-weight:900; color:#ffb3cc; line-height:1.4;">
+        关系组织已大面积坏死，<br>距“彻底崩盘”仅一次冷战
+      </p>
+      <p style="font-size:0.8rem; color:#c9b8e8; margin-top:8px;">
+        3分钟生成你的《关系尸检报告》
+      </p>
+      <p style="font-size:0.65rem; color:var(--neon-blue); margin-top:6px;">
+        持本人聊天记录就诊 · 完全免费 · 可发朋友圈公示
+      </p>
+    </div>
+    <button class="neon-btn" id="btnStart">🔪 开始验尸 →</button>
+  </div>
+
+  <!-- ==================== 答题页 ==================== -->
+  <div class="page" id="pageQuiz">
+    <div class="progress-wrap">
+      <div class="progress-label" id="progressLabel">精神状态损耗值 0%</div>
+      <div class="progress-outer"><div class="progress-inner" id="progressBar" style="width:0%"></div></div>
+    </div>
+    <p id="stageHint" style="color:var(--neon-blue);font-weight:600;margin:0 0 8px;"></p>
+    <div class="glass-card" id="questionCard">
+      <p id="questionNumber" style="color:var(--neon-blue);font-weight:600;"></p>
+      <p id="questionText" style="font-weight:600;margin:10px 0;line-height:1.5;"></p>
+      <div id="optionsList" style="display:flex;flex-direction:column;gap:10px;"></div>
+    </div>
+  </div>
+
+  <!-- ==================== Loading页 ==================== -->
+  <div class="page" id="pageLoading" style="justify-content:center;">
+    <div style="width:80px;height:80px;border:3px solid rgba(255,107,157,0.3);border-top-color:var(--neon-pink);border-radius:50%;animation:spin 0.9s linear infinite;margin:20px auto;"></div>
+    <p id="loadingText" style="font-weight:600;text-align:center;margin-top:20px;">正在解剖你的关系尸体……</p>
+    <div style="display:flex;gap:6px;justify-content:center;margin-top:16px;">
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--neon-pink);animation:bounce 0.6s infinite;"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--neon-blue);animation:bounce 0.6s 0.15s infinite;"></span>
+      <span style="width:6px;height:6px;border-radius:50%;background:var(--neon-purple);animation:bounce 0.6s 0.3s infinite;"></span>
+    </div>
+  </div>
+
+  <!-- ==================== 结果页 ==================== -->
+  <div class="page" id="pageResult">
+    <div id="resultCardScreenshot" style="width:100%;">
+      <h2 class="persona-name neon-pink" id="personaName"></h2>
+      <p id="personaTagline" style="font-style:italic;text-align:center;color:var(--text-secondary);margin-bottom:8px;"></p>
+      <canvas id="radarCanvas" class="radar-canvas" width="300" height="300"></canvas>
+      <div id="typewriterArea"></div>
+      <div style="margin-top:12px;"><strong style="color:var(--neon-blue);">💥 关系破坏动作</strong><ul id="damageList" style="color:#d5c8ec;padding-left:18px;"></ul></div>
+      <p style="color:var(--neon-blue);font-weight:700;margin-top:8px;">😨 你其实在怕什么</p><p id="fearText" style="color:#d5c8ec;"></p>
+      <p style="color:var(--neon-blue);font-weight:700;">🌱 潜在人格发展</p><p id="growthText" style="color:#d5c8ec;"></p>
+      <p style="color:var(--neon-blue);font-weight:700;">⚔️ 宿命对立面</p><p id="nemesisText" style="color:#d5c8ec;"></p>
+      <p style="color:var(--neon-blue);font-weight:700;">💊 破局药方</p><p id="remedyText" style="color:#d5c8ec;"></p>
+      <p style="color:var(--neon-purple);font-weight:700;margin-top:12px;">🖤 潜在黑化人格</p>
+      <div class="dark-persona-card" id="darkPersonaCard"><p>加载中...</p></div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
+      <button class="neon-btn" id="btnSave">📸 保存结果卡</button>
+      <button class="neon-btn" id="btnRetry" style="border-color:var(--neon-blue);color:var(--neon-blue);">🔄 重新测试</button>
+    </div>
+  </div>
+</div>
+
+<!-- 弹幕层 -->
+<div class="danmaku-layer" id="danmakuLayer"></div>
+<!-- Toast容器 -->
+<div id="toastContainer" style="position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:300;"></div>
+
+<script>
+(function() {
+  'use strict';
+  console.log('🔪 AUTOPSY 最终版加载中...');
+
+  // ==================== 题目数据 ====================
+  var questions = [
+    { id:1, stage:1, text:'对方两小时没回消息，你第8次点开对话框时，内心在循环播放哪首歌？', options:[
+      {key:'A',text:'《他或许在拉屎》——但更可能是在已读不回'},{key:'B',text:'《体面》——我先删对话框为敬'},{key:'C',text:'《爱的供养》——再问他是不是手机掉厕所了'},{key:'D',text:'《名侦探柯南》主题曲——截图发闺蜜群开始破案'}]},
+    { id:2, stage:1, text:'你发了一张精修自拍，他回了个“6”。你的大脑自动翻译成：', options:[
+      {key:'A',text:'“6=敷衍的极致，建议原地火花”'},{key:'B',text:'“行，那我明天开始已读乱回”'},{key:'C',text:'“是不是我P太过了？他认不出我了？”'},{key:'D',text:'“这个‘6’是在夸我还是在给我打分？开庭！”'}]},
+    { id:3, stage:1, text:'约会迟到半小时，对方甩了一句“路上堵车”。你更接近：', options:[
+      {key:'A',text:'“嗯嗯没事～”（内心：这一笔我先记在Excel第8行）'},{key:'B',text:'全场黑脸，把气氛冻成“冰块脸挑战”'},{key:'C',text:'“没关系没关系，你慢慢来，安全第一！”（并开始反思自己是不是太闲了）'},{key:'D',text:'“堵在哪条路？几点出的门？高德截图发我。”'}]},
+    { id:4, stage:1, text:'你诉说委屈，他回：“你是不是又想多了？” 你的反应像：', options:[
+      {key:'A',text:'甩出聊天记录截图，做成PPT当场演示'},{key:'B',text:'“算了，我跟电子宠物说话都比跟你有效”'},{key:'C',text:'“对不起，是我表达不清晰……”（然后半夜咬被子）'},{key:'D',text:'翻开记仇本，把“旧账”文件夹拖到桌面'}]},
+    { id:5, stage:1, text:'讨论晚饭，他说“随便”。你的第一反应：', options:[
+      {key:'A',text:'启动“随便翻译器”：随便=不想负责=感情淡了'},{key:'B',text:'“那别吃了，咱俩一起饿死，看谁先扛不住”'},{key:'C',text:'“那还是吃你上次说的那家吧，我都可以～”'},{key:'D',text:'“随便是什么意思？是真随便还是摆烂式随便？请阐述你的底层逻辑。”'}]},
+    { id:6, stage:1, text:'你在朋友圈发了一首伤感的歌，他明明在线却没点赞没评论。你觉得：', options:[
+      {key:'A',text:'他看到了，只是觉得我的情绪不重要'},{key:'B',text:'立刻删朋友圈，并决定未来三天不主动说话'},{key:'C',text:'“可能他耳机坏了，或者正在拯救世界”'},{key:'D',text:'想直接问：“你是手断了还是心死了？”'}]},
+    { id:7, stage:2, text:'你提出想要更多陪伴，他说：“你是不是太粘人了？” 你内心：', options:[
+      {key:'A',text:'“完了，我是不是变成‘恋爱脑僵尸’了？”'},{key:'B',text:'“行，那我撤回所有需求，以后你连我人影都找不到”'},{key:'C',text:'“对，我就是粘人精，但你不也是当初说喜欢我粘人吗？”'},{key:'D',text:'建立“粘人度监测表”，每日记录他的忍耐值'}]},
+    { id:8, stage:2, text:'他对别人温柔得像客服，对你却像Siri。你心想：', options:[
+      {key:'A',text:'“原来我只是个免提模式的Siri，连表情包都不配”'},{key:'B',text:'后退半步，开始用“嗯”“哦”“好”进行防御'},{key:'C',text:'“一定是我最近太负能量了，我要变回小太阳”'},{key:'D',text:'取证完毕，今晚家庭法庭开庭，法官是我，律师也是我'}]},
+    { id:9, stage:2, text:'他说想“静静”，你的理解是：', options:[
+      {key:'A',text:'“静静=分手冷静期，懂的都懂”'},{key:'B',text:'“正好，我也要开启勿扰模式，看谁先憋不住”'},{key:'C',text:'“好的，你好好静静，需要我送饭吗？”'},{key:'D',text:'“静静是谁？你最好给我解释清楚。”'}]},
+    { id:10, stage:2, text:'这一周都是你主动找话题，他像个人工智障一样只会回“嗯”。你：', options:[
+      {key:'A',text:'统计表出炉：我主动7天，他主动0次，已触发“摆烂预警”'},{key:'B',text:'直接消失，看他几天后才会发现世界上少了一个我'},{key:'C',text:'“没关系，他可能只是太忙了，我正好培养独立人格”'},{key:'D',text:'“你到底有没有把我放进人生KPI里？我需要看进度表。”'}]},
+    { id:11, stage:2, text:'你提到未来规划，他开始转移话题聊天气。你觉得：', options:[
+      {key:'A',text:'大脑自动生成PPT《他是不是在对我使用“糊弄学”》'},{key:'B',text:'瞬间下头，这个话题我永久封存'},{key:'C',text:'立刻顺着他聊天气，心里却在下雨'},{key:'D',text:'“别打岔，今天不聊清楚未来咱们就聊清楚分手”'}]},
+    { id:12, stage:2, text:'上次吵架他当作没发生，现在笑嘻嘻找你。你更像：', options:[
+      {key:'A',text:'表面配合演出，内心小本本记上“演技+1”'},{key:'B',text:'“行，翻篇是吧？我也翻，反正心里那页用胶水粘死了”'},{key:'C',text:'“算了，他都主动了，我再计较显得我小气”'},{key:'D',text:'“翻篇可以，先把上次的问题复盘完，时间线、责任人、改进方案。”'}]},
+    { id:13, stage:3, text:'冷战第二天，对话框安静得像停尸房。你：', options:[
+      {key:'A',text:'脑补出他已经在心理上跟我分手了，连讣告都写好了'},{key:'B',text:'死扛到底，谁先说话谁是狗，哪怕快憋出内伤'},{key:'C',text:'“你吃饭了吗？”发送。撤回。再发送。再撤回。'},{key:'D',text:'一篇3000字小作文发送，结尾是“你看着办”'}]},
+    { id:14, stage:3, text:'他回复越来越慢，热情值肉眼可见下降。你第一反应：', options:[
+      {key:'A',text:'开启“电子哭坟”模式：每隔一小时检查他是否还活着'},{key:'B',text:'比他更冷，朋友圈发“单身快乐”并配上夜店视频'},{key:'C',text:'假装没发现，但备忘录已经写了800字分手草稿'},{key:'D',text:'直接打视频：“你看着我的眼睛说，是不是没以前喜欢了？”'}]},
+    { id:15, stage:3, text:'你隐隐觉得他有事瞒着你，但没证据。你：', options:[
+      {key:'A',text:'化身赛博侦探，从点赞列表到运动步数全面排查'},{key:'B',text:'“不问，先收拾行李，随时准备跑路”'},{key:'C',text:'“可能他需要空间，我给他时间，他一定会感动的”'},{key:'D',text:'“你是不是有事瞒着我？A.是 B.不是（必须选）”'}]},
+    { id:16, stage:3, text:'你很委屈，但对方也状态不好。你通常会：', options:[
+      {key:'A',text:'一边流泪一边发“没事你早点睡”，然后熬夜写小作文'},{key:'B',text:'把委屈嚼碎咽下去，打出一个“嗯”'},{key:'C',text:'“行，大家一起发疯，这日子不过了”'},{key:'D',text:'表面冷静，打开Excel在“情绪负债”一栏加了500'}]},
+    { id:17, stage:3, text:'你想提分手，但其实只是希望他挽留。你更像：', options:[
+      {key:'A',text:'把分手信写成了“求救信号”，希望他读懂潜台词'},{key:'B',text:'先拉黑再取消，用行动说“你快来哄我”'},{key:'C',text:'“我们暂时分开吧……但你有需要我随时在”'},{key:'D',text:'“分手是手段，态度是核心，请开始你的陈述”'}]},
+    { id:18, stage:3, text:'关系真要结束时，你最后的操作是：', options:[
+      {key:'A',text:'疯狂解释，把自己从小到大的创伤都抖出来证明“我真的努力过”'},{key:'B',text:'体面告别，回家在备忘录写下万字遗书，但绝不给任何人看'},{key:'C',text:'“没关系，你幸福就好，不用管我”（然后自己哭成狗）'},{key:'D',text:'公平伤害：把对方的缺点和自己的委屈列成清单，互相发送'}]}
+  ];
+
+  // 计分规则
+  var scoringRules = {
+    1:{A:{overExplain:3},B:{shield:3},C:{savior:3},D:{judge:2}},
+    2:{A:{overExplain:3},B:{shield:3},C:{savior:3},D:{judge:2}},
+    3:{A:{accountant:3},B:{shield:3},C:{savior:3},D:{judge:2}},
+    4:{A:{judge:3},B:{shield:3},C:{savior:3},D:{accountant:2}},
+    5:{A:{overExplain:3},B:{slacker:3},C:{savior:3},D:{judge:3}},
+    6:{A:{overExplain:3},B:{shield:3},C:{savior:3},D:{accountant:2}},
+    7:{A:{savior:3},B:{shield:3},C:{judge:3},D:{accountant:3}},
+    8:{A:{disaster:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    9:{A:{overExplain:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    10:{A:{accountant:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    11:{A:{disaster:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    12:{A:{accountant:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    13:{A:{disaster:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    14:{A:{overExplain:3},B:{shield:3},C:{disaster:3},D:{judge:3}},
+    15:{A:{overExplain:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    16:{A:{savior:3},B:{shield:3},C:{disaster:3},D:{accountant:3}},
+    17:{A:{disaster:3},B:{shield:3},C:{savior:3},D:{judge:3}},
+    18:{A:{judge:3},B:{shield:3},C:{savior:3},D:{judge:3}}
+  };
+
+  // 弹幕
+  var danmu = {
+    1:{A:'对方可能在拉屎，但你已经在脑内演完《消失的他》',B:'对话框已删除，但心里还在等小红点',C:'你上辈子一定是移动客服，24小时在线找理由',D:'闺蜜：又来？我开个剧本杀店算了'},
+    2:{A:'这个“6”包含的内容比你论文还多',B:'下头比翻书还快，你的心是冰箱吗',C:'反思怪上线：一定是我长得还不够完美',D:'已截图留证，今晚开庭'},
+    3:{A:'Excel新增一行：迟到一次，扣感情分50',B:'冷暴力启动，方圆十米气温骤降',C:'你道歉的速度比他踩油门的还快',D:'高德地图：怎么有人查我的数据？'},
+    4:{A:'PPT已生成，要不要再做个动画效果？',B:'电子宠物至少还会回“6”',C:'自我PUA大师，建议出书',D:'旧账文件夹已解压，准备打印'},
+    5:{A:'随便=他不想活了吧',B:'两人饿死，也算殉情了',C:'选择权？我不配拥有',D:'逻辑追问：到底哪种随便？请定义'},
+    6:{A:'朋友圈已删，心也删了',B:'未来三天他将收到“嗯”“哦”“好”套餐',C:'他可能去拯救银河系了，没空看我',D:'想质问，但怕显得太在意，憋回去'},
+    7:{A:'恋爱脑诊断书已开，建议化疗',B:'需求撤回，从此我是没有感情的机器人',C:'当初说喜欢粘人的是你，现在嫌烦的也是你',D:'粘人度KPI每日更新，已超警戒线'},
+    8:{A:'原来我只是个Siri，还是静音版',B:'嗯。哦。好。你赢了。',C:'我要变成小太阳，先把自己烧死',D:'法庭材料已备齐，被告请就位'},
+    9:{A:'静静=分手冷静期，我懂的',B:'勿扰模式启动，看谁先破防',C:'需要送饭吗？需要按摩吗？需要我消失吗？',D:'静静是谁？不说清楚别想静静'},
+    10:{A:'主动统计图已生成，你全勤，他旷工',B:'消失三天，看他能不能发现',C:'正好培养独立，我马上就去报班',D:'人生KPI汇报：你已被列为不合格'},
+    11:{A:'PPT《他在糊弄我》已投屏',B:'这个话题永久封存，再聊我是狗',C:'今天天气真好……（心里暴雨）',D:'不聊清楚未来就聊清楚分手，选吧'},
+    12:{A:'演技+1，记仇+100',B:'翻篇可以，心里的502已经凝固',C:'算了，他主动了，我给个台阶',D:'复盘会现在开始：时间、地点、人物、改进方案'},
+    13:{A:'讣告已写好，就差他的签名',B:'谁先说话谁是狗，我是狗',C:'你吃饭了吗？撤回。再发。再撤回。',D:'3000字小作文已送达，请查收'},
+    14:{A:'电子哭坟开始，每隔十分钟检查一次',B:'朋友圈：单身快乐！今晚857！',C:'备忘录：分手草稿v1.0.doc',D:'打视频：看着我的眼睛，说实话'},
+    15:{A:'从点赞到步数，福尔摩斯直呼内行',B:'行李已打包，随时跑路',C:'给他空间，等他感动，然后他跑了',D:'选择题：A.有事 B.没事 请作答'},
+    16:{A:'流泪打“没事”，然后写小作文到凌晨',B:'嗯。一个字吞下所有委屈',C:'一起发疯，这日子不过了',D:'情绪负债+500，Excel已更新'},
+    17:{A:'分手信其实是求救信，求他读懂',B:'拉黑又取消，用行动说“快来哄我”',C:'暂时分开吧……但你需要我随时在',D:'分手是手段，态度是核心，开始陈述'},
+    18:{A:'把自己从小到大的创伤全抖出来，证明我真的努力过',B:'体面告别，回家写万字遗书，绝不给你看',C:'你幸福就好，不用管我（自己哭成狗）',D:'公平伤害，互相发送缺点清单，请查收'}
+  };
+
+  // 人格结果
+  var personas = {
+    overExplain:{name:'已读乱回鉴定师',tagline:'对方发了个“嗯”，你已经在脑内写完了80集连续剧《他到底爱不爱我》',traits:'赛博读心术十级学者，擅长从标点符号里提取情绪，把“好的”翻译成“你完蛋了”。',damage:['逐帧分析聊天记录，把表情包当证据','提前预演分手场景，排练哭戏','用“你是不是不爱我了”进行压力测试'],fear:'最怕对方没有发朋友圈，但给别人点了赞。',growth:'情绪预警雷达：依旧敏感，但不再把脑补当预言。',nemesis:'信号屏蔽器',nemesisDesc:'你越追问，他越像人间蒸发。',remedy:'下次想问“你为什么不回我”时，先给自己放一首《大悲咒》，冷静三分钟。'},
+    shield:{name:'信号屏蔽器',tagline:'你的情绪像WiFi，一有波动就自动切飞行模式',traits:'已读不回专业八级，冷暴力美学大师，擅长用“嗯”“哦”“好”构建防御结界。',damage:['消失、已读不回、“我没事”三连','把沟通变成猜谜游戏，让对方崩溃','用沉默惩罚对方，顺便惩罚自己'],fear:'最怕一开口就哭，一哭就显得很弱。',growth:'边界表达者：不再人间蒸发，而是直接说“我现在不想说话”。',nemesis:'开庭狂魔',nemesisDesc:'你越沉默，对方越想把你拉上法庭。',remedy:'下次想消失时，发个表情包也行，至少证明你还活着。'},
+    savior:{name:'菩萨代偿机',tagline:'对方掉链子，你第一反应不是跑，而是“我再救一下，万一还能用呢”',traits:'恋爱脑晚期，自带“圣母”光环，擅长替烂人写售后好评。',damage:['过度包容，把“渣”解释为“他只是还没长大”','自我牺牲，委屈自己成全对方的懒惰','把“被需要”当成“被爱”，疯狂内耗'],fear:'最怕自己不够懂事，就不值得被爱。',growth:'温柔有边界的人：还能爱，但不再替别人活。',nemesis:'情绪记账员',nemesisDesc:'你拼命给，对方却在背后算账，早晚心碎。',remedy:'下次想替他找借口时，问自己：如果闺蜜这样，我骂不骂？'},
+    judge:{name:'开庭狂魔',tagline:'你的恋爱日常：收集证据→开庭→宣判→上诉',traits:'逻辑鬼才，吵架时能当场画出思维导图，让对方哑口无言然后更生气。',damage:['深夜发送小作文，要求逐条回复','把普通分歧升级为“原则性听证会”','追问细节直到对方崩溃，然后说“你态度有问题”'],fear:'最怕对方用“算了”结束对话，让你一拳打在棉花上。',growth:'高质量沟通者：依然敢说，但不再把对话变成审讯。',nemesis:'信号屏蔽器',nemesisDesc:'你越审，他越沉默，最终变成一场哑剧。',remedy:'下次想开庭时，把“你为什么不”换成“我需要”。效果堪比魔法。'},
+    boss:{name:'情感甲方',tagline:'谈恋爱像在做项目管理，你负责验收，对方负责整改',traits:'标准制定大师，绩效评估专家，恋爱里也要搞OKR和复盘会。',damage:['不断纠错，把对象当bug修','下达整改通知，要求限期改进','用“为你好”包装控制欲，让人窒息'],fear:'最怕对方躺平说“我就这样”，让你失去掌控感。',growth:'高标准但不高压：依然有要求，但允许对方做自己。',nemesis:'摆烂型共生体',nemesisDesc:'你恨铁不成钢，他嫌你太卷，天生冤家。',remedy:'下次想说“你应该”时，改成“我们能不能试试”，语气软一点，效果猛十倍。'},
+    disaster:{name:'灾难预演艺术家',tagline:'别人还在回消息，你已经在心里参加完自己的葬礼了',traits:'想象力过剩，能把一个未接电话扩展成整部《死神来了》。擅长在脑海里放灾难片。',damage:['情绪过山车，上午热恋下午绝交','反复预演分手场景，然后按剧本崩溃','用“我先疯”来保护自己，结果把关系搞疯'],fear:'最怕失去不是最痛的，最痛的是你早就“料到”了。',growth:'高敏感但能自稳：依旧感受深刻，但能分清想象和现实。',nemesis:'摆烂型共生体',nemesisDesc:'你情绪火山爆发，他像块石头，你觉得他冷血，他觉得你戏多。',remedy:'灾难片开播时，拿纸写下：事实是什么？我编了什么？对比完你就笑了。'},
+    accountant:{name:'情绪记账员',tagline:'你心里有个Excel，专门记录“谁付出的多，谁更敷衍”',traits:'公平警察，感情里的审计师，每一笔“主动”都记在借方，等他偿还。',damage:['暗中计较，累计不满，最后爆发','比较付出，越比较越委屈','把关系变成债务关系，爱意变成利息'],fear:'最怕自己一直真心，对方只是“顺手”。',growth:'需求说明书作者：不再暗戳戳记账，直接开口要。',nemesis:'菩萨代偿机',nemesisDesc:'你这边算账，那边菩萨还在布施，你觉得她傻，她觉得你计较。',remedy:'下次想记账时，直接说“我今天有点不开心，因为……”，别让Excel爆仓。'},
+    slacker:{name:'摆烂型共生体',tagline:'你的爱情信条：只要我躺得够平，问题就追不上我',traits:'糊弄学博士生，用“都行”“随便”“看你”搭建安全区，看似随和，实则逃避。',damage:['不表态、不推进、不拒绝，让关系烂在泥里','用含糊其辞维持表面和平，实则暗流涌动','怕负责，所以把决定权都丢给对方，最后被分手'],fear:'最怕一旦认真选择，就要承担后果，甚至失去退路。',growth:'轻盈但有主见：依旧柔和，但能从“随便”里说出一个具体想法。',nemesis:'情感甲方',nemesisDesc:'你越躺平，他越想给你开整改单，互相折磨。',remedy:'下次想说“都行”时，试着说“我倾向火锅，但也可以听你的”，瞬间有人样了。'}
+  };
+
+  var currentIndex = 0;
+  var scores = {overExplain:0,shield:0,savior:0,judge:0,boss:0,disaster:0,accountant:0,slacker:0};
+  var animating = false;
+
+  var $pages = {
+    home: document.getElementById('pageHome'),
+    quiz: document.getElementById('pageQuiz'),
+    loading: document.getElementById('pageLoading'),
+    result: document.getElementById('pageResult')
+  };
+
+  function showPage(page) {
+    Object.values($pages).forEach(function(p){ if(p) p.classList.remove('active'); });
+    if(page) page.classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+  }
+
+  function startTest(){
+    currentIndex=0; scores={overExplain:0,shield:0,savior:0,judge:0,boss:0,disaster:0,accountant:0,slacker:0}; animating=false;
+    document.getElementById('progressBar').style.width='0%';
+    document.getElementById('progressLabel').textContent='精神状态损耗值 0%';
+    showPage($pages.quiz); renderQuestion(0);
+  }
+
+  function renderQuestion(index){
+    if(index>=questions.length){ finishQuiz(); return; }
+    var q=questions[index];
+    document.getElementById('questionNumber').textContent='Q'+q.id+' / 18';
+    document.getElementById('questionText').textContent=q.text;
+    var stageHint = q.stage===1 ? '💬 你还在立“我很正常”人设的时候' : (q.stage===2 ? '💬 关系的 CPU 已经开始冒烟了' : '💬 好了，你的精神状态已经遥遥领先了');
+    document.getElementById('stageHint').textContent=stageHint;
+    var list=document.getElementById('optionsList'); list.innerHTML='';
+    q.options.forEach(function(opt){
+      var btn=document.createElement('button'); btn.className='option-btn';
+      btn.innerHTML='<span class="option-letter">'+opt.key+'</span><span>'+opt.text+'</span>';
+      btn.addEventListener('click',function(){ selectOption(index,opt.key,btn); });
+      list.appendChild(btn);
+    });
+    var progress=Math.round((index/18)*100);
+    document.getElementById('progressBar').style.width=progress+'%';
+    document.getElementById('progressLabel').textContent='精神状态损耗值 '+progress+'%';
+  }
+
+  function selectOption(index,key,btnEl){
+    if(animating) return; animating=true;
+    var q=questions[index];
+    var rule=scoringRules[q.id]&&scoringRules[q.id][key];
+    if(rule){ Object.keys(rule).forEach(function(d){ if(scores.hasOwnProperty(d)) scores[d]+=rule[d]; }); }
+    var dmText=(danmu[q.id]&&danmu[q.id][key])?danmu[q.id][key]:'🤔 这选项，有点东西';
+    spawnDanmaku(dmText);
+    var allBtns=document.querySelectorAll('#optionsList .option-btn');
+    allBtns.forEach(function(b){ b.style.pointerEvents='none'; });
+    btnEl.style.background='rgba(255,107,157,0.25)'; btnEl.style.borderColor='rgba(255,107,157,0.7)'; btnEl.style.boxShadow='0 0 16px rgba(255,107,157,0.3)';
+    setTimeout(function(){
+      var next=index+1;
+      if(next===6||next===12){
+        var msg=next===6?'你现在看起来还算体面。但你的眼神已经出卖了你。':'别急，真正的离谱还在后面。建议你深呼吸，虽然没什么用。';
+        showToast(msg,function(){ goNext(next); });
+      }else if(next===18){
+        showToast('好了，验尸完毕。正在生成你的赛博判决书……',function(){ goNext(next); });
+      }else{ goNext(next); }
+    },400);
+  }
+
+  function goNext(next){
+    if(next>=18){ finishQuiz(); } else { currentIndex=next; renderQuestion(next); }
+    animating=false;
+  }
+
+  function spawnDanmaku(text){
+    var el=document.createElement('div'); el.className='danmaku-item'; el.textContent=text;
+    el.style.top=(10+Math.random()*68)+'%';
+    document.getElementById('danmakuLayer').appendChild(el);
+    setTimeout(function(){ if(el.parentNode) el.parentNode.removeChild(el); },4800);
+  }
+
+  function showToast(msg,cb){
+    var container=document.getElementById('toastContainer');
+    var div=document.createElement('div'); div.className='toast-modal'; div.textContent=msg;
+    container.appendChild(div);
+    setTimeout(function(){ div.remove(); if(cb) cb(); },1800);
+  }
+
+  function finishQuiz(){
+    showPage($pages.loading);
+    var texts=['正在解剖你的关系尸体……','正在比对你和全网300万“脆皮恋爱脑”的数据……','正在生成你的赛博判决书……'];
+    var i=0;
+    document.getElementById('loadingText').textContent=texts[0];
+    var timer=setInterval(function(){
+      i++; if(i>=3){ clearInterval(timer); showResult(); }
+      else{ document.getElementById('loadingText').textContent=texts[i]; }
+    },1000);
+  }
+
+  function showResult(){
+    showPage($pages.result);
+    var dims=Object.entries(scores); dims.sort(function(a,b){ return b[1]-a[1]; });
+    var topDim=dims[0][0]; var persona=personas[topDim]||personas.overExplain;
+    document.getElementById('personaName').textContent=persona.name;
+    document.getElementById('personaTagline').textContent=persona.tagline;
+    document.getElementById('fearText').textContent=persona.fear;
+    document.getElementById('growthText').textContent=persona.growth;
+    document.getElementById('nemesisText').textContent=persona.nemesis+'：'+persona.nemesisDesc;
+    document.getElementById('remedyText').textContent=persona.remedy;
+    var dmgList=document.getElementById('damageList');
+    dmgList.innerHTML=persona.damage.map(function(d){ return '<li>'+d+'</li>'; }).join('');
+    var twArea=document.getElementById('typewriterArea'); twArea.innerHTML='';
+    var typeLines=['🧬 '+persona.traits,'💥 '+persona.damage[0],'😨 '+persona.fear];
+    typeLines.forEach(function(line,idx){
+      var p=document.createElement('p'); p.className='typewriter'; twArea.appendChild(p);
+      typewrite(p,line,idx*500);
+    });
+    setTimeout(function(){ drawRadar(); },200);
+    var second=dims[1]?dims[1][0]:'boss';
+    var darkPersona=personas[second]||personas.boss;
+    var darkCard=document.getElementById('darkPersonaCard');
+    if(darkCard){
+      darkCard.innerHTML='<p style="font-weight:700;color:#ffb8d4;">隐藏人格：'+darkPersona.name+'</p>'+
+        '<p style="font-size:0.85rem;color:#c9b8e8;margin-top:4px;">'+darkPersona.tagline+'</p>'+
+        '<p style="font-size:0.8rem;color:#b0a0cc;margin-top:6px;">💥 破坏模式：'+darkPersona.damage[0]+'</p>'+
+        '<p style="font-size:0.8rem;color:#b0a0cc;">😨 深层恐惧：'+darkPersona.fear+'</p>'+
+        '<p style="font-size:0.8rem;color:#b0a0cc;">💊 解药：'+darkPersona.remedy+'</p>';
+    }
+  }
+
+  function typewrite(el,text,delay){
+    setTimeout(function(){
+      var idx=0; el.classList.remove('done'); el.textContent='';
+      var intv=setInterval(function(){
+        if(idx<text.length){ el.textContent+=text[idx]; idx++; }
+        else{ clearInterval(intv); el.classList.add('done'); }
+      },35);
+    },delay);
+  }
+
+  function drawRadar(){
+    var canvas=document.getElementById('radarCanvas'); if(!canvas) return;
+    var ctx=canvas.getContext('2d');
+    var dimKeys=['overExplain','shield','savior','judge','boss','disaster','accountant','slacker'];
+    var labels=['脑补力','回避力','讨好力','追问力','控制力','焦虑力','计较力','摆烂力'];
+    var maxVal=Math.max.apply(null,dimKeys.map(function(d){return scores[d]||0;}),1);
+    var cx=150,cy=150,r=105;
+    ctx.clearRect(0,0,300,300);
+    for(var i=1;i<=5;i++){ ctx.beginPath(); ctx.arc(cx,cy,r*i/5,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,0.08)'; ctx.stroke(); }
+    dimKeys.forEach(function(_,i){
+      var angle=(Math.PI*2/dimKeys.length)*i-Math.PI/2;
+      ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(angle),cy+r*Math.sin(angle));
+      ctx.strokeStyle='rgba(255,255,255,0.12)'; ctx.stroke();
+    });
+    ctx.beginPath();
+    dimKeys.forEach(function(d,i){
+      var angle=(Math.PI*2/dimKeys.length)*i-Math.PI/2;
+      var val=((scores[d]||0)/maxVal)*r;
+      var x=cx+val*Math.cos(angle), y=cy+val*Math.sin(angle);
+      if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
+    });
+    ctx.closePath(); ctx.fillStyle='rgba(255,107,157,0.22)'; ctx.fill();
+    ctx.strokeStyle='#FF6B9D'; ctx.lineWidth=2.5; ctx.shadowColor='rgba(255,107,157,0.5)'; ctx.shadowBlur=12; ctx.stroke();
+    ctx.shadowColor='transparent'; ctx.shadowBlur=0;
+    dimKeys.forEach(function(d,i){
+      var angle=(Math.PI*2/dimKeys.length)*i-Math.PI/2;
+      var val=((scores[d]||0)/maxVal)*r;
+      var x=cx+val*Math.cos(angle), y=cy+val*Math.sin(angle);
+      ctx.beginPath(); ctx.arc(x,y,4,0,Math.PI*2); ctx.fillStyle='#fff'; ctx.fill();
+      ctx.strokeStyle='#FF6B9D'; ctx.lineWidth=2; ctx.stroke();
+    });
+    ctx.fillStyle='#f0e6ff'; ctx.font='bold 10px -apple-system, sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    dimKeys.forEach(function(_,i){
+      var angle=(Math.PI*2/dimKeys.length)*i-Math.PI/2;
+      var lx=cx+(r+26)*Math.cos(angle), ly=cy+(r+26)*Math.sin(angle);
+      ctx.fillText(labels[i],lx,ly);
+    });
+  }
+
+  function saveResult(){
+    if(typeof html2canvas==='undefined'){
+      var script=document.createElement('script'); script.src='https://html2canvas.hertzen.com/dist/html2canvas.min.js';
+      script.onload=function(){ doSaveImage(); }; script.onerror=function(){ alert('截图库加载失败，请检查网络'); };
+      document.head.appendChild(script);
+    }else{ doSaveImage(); }
+  }
+  function doSaveImage(){
+    var target=document.getElementById('resultCardScreenshot');
+    if(!target||typeof html2canvas==='undefined'){ alert('截图功能暂不可用'); return; }
+    html2canvas(target,{backgroundColor:'#0D0221',scale:2,useCORS:true,logging:false}).then(function(canvas){
+      var link=document.createElement('a'); link.download='AUTOPSY_验尸报告.png'; link.href=canvas.toDataURL('image/png'); link.click();
+    }).catch(function(){ alert('截图失败，请手动截图'); });
+  }
+  function resetTest(){ showPage($pages.home); }
+
+  function bindEvents(){
+    var btnStart=document.getElementById('btnStart'); if(btnStart) btnStart.addEventListener('click',startTest);
+    var btnSave=document.getElementById('btnSave'); if(btnSave) btnSave.addEventListener('click',saveResult);
+    var btnRetry=document.getElementById('btnRetry'); if(btnRetry) btnRetry.addEventListener('click',resetTest);
+  }
+
+  if(document.readyState==='loading'){ document.addEventListener('DOMContentLoaded',function(){ showPage($pages.home); bindEvents(); }); }
+  else{ showPage($pages.home); bindEvents(); }
+})();
+</script>
+</body>
+</html>
